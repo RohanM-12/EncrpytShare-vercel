@@ -6,7 +6,8 @@
   "scripts": {
     "start": "nodemon server.js",
     "client": "cd client && npm run dev",
-    "dev": "concurrently \" nodemon server.js\" \"npm run client\""
+    "dev": "concurrently \" nodemon server.js\" \"npm run client\"",
+     "postinstall": "prisma generate"
   },
   "author": "",
   "license": "ISC",
