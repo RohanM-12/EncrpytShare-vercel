@@ -97,6 +97,7 @@ const signupUser = async (req, res) => {
 const getAllUsers = async (req, res) => {
   try {
     const { currLen, loadLen, userId } = req.query;
+    const userCount = await prisma.user.count({});
     const userList = await prisma.user.findMany({
       skip: parseInt(currLen),
       take: parseInt(loadLen),
