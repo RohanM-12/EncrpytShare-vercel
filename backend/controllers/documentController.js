@@ -1,6 +1,7 @@
 const { randomBytes, createCipheriv, publicEncrypt } = require("crypto");
 const { encrypt, decrypt, decryptPrivateKey } = require("../utils/AESCipher");
 const fs = require("fs");
+const requestIp = require("request-ip");
 const crypto = require("crypto");
 const { prisma } = require("../utils/DBConnect");
 require("dotenv").config();
@@ -157,6 +158,7 @@ function getMimeType(filename) {
   };
   return mimeTypes[extension] || "application/octet-stream";
 }
+
 const downloadDocument = async (req, res) => {
   try {
     const { mongoId, id, userId } = req.query;
@@ -193,7 +195,6 @@ const downloadDocument = async (req, res) => {
       encryptedPrivateKey,
       process.env.MASTER_KEY
     );
-    //  console.log("priv key dec", privateKey);
     const encryptedAESKey = Buffer.from(userAccess.encryptedKey, "hex");
     const aesKey = crypto.privateDecrypt(privateKey, encryptedAESKey);
 
@@ -203,31 +204,33 @@ const downloadDocument = async (req, res) => {
       throw new Error("Invalid IV length");
     }
 
-    const decryptedFilename = decrypt(
-      encryptedFileContent.content,
+    const encryptedBuffer = Buffer.from(encryptedFileContent.content, "base64");
+    const decipher = crypto.createDecipheriv(
+      process.env.ENC_METHOD,
       aesKey,
-      fileIV,
-      fileMetaData.name
+      fileIV
     );
-    const filePath = `../EncryptShare/decFiles/${decryptedFilename}`;
-
+    const decryptedData = Buffer.concat([
+      decipher.update(encryptedBuffer),
+      decipher.final(),
+    ]);
+    // creating a log for the download OPERATIon
+    const clientIP = requestIp.getClientIp(req).toString();
+    const logData = await prisma.FileAccessLog.create({
+      data: {
+        userId: parseInt(userId),
+        fileId: parseInt(id),
+        action: "Downloaded",
+        ipAddr: clientIP,
+      },
+    });
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="${fileMetaData.name}"`
     );
     res.setHeader("Content-Type", getMimeType(fileMetaData.name));
 
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
-
-    fileStream.on("close", () => {
-      // cleaninng the server file not needed now
-      fs.unlink(filePath, (unlinkErr) => {
-        if (unlinkErr) {
-          console.error("Unlink file error:", unlinkErr);
-        }
-      });
-    });
+    res.end(decryptedData);
   } catch (error) {
     return res.status(500).json({
       error: error,
@@ -295,6 +298,17 @@ const shareDocument = async (req, res) => {
         userId: parseInt(userData.id),
         fileId: parseInt(fileId),
         encryptedKey: sharedUserEncryptedAESKey.toString("hex"),
+      },
+    });
+
+    /// insert user access log for sharing
+    const clientIP = requestIp.getClientIp(req).toString();
+    const logData = await prisma.FileAccessLog.create({
+      data: {
+        userId: parseInt(ownerId),
+        fileId: parseInt(fileId),
+        action: "Shared",
+        ipAddr: clientIP,
       },
     });
 
