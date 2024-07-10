@@ -19,6 +19,7 @@ const ShareDrawer = ({ open, setIsOpen, docData }) => {
   const [userAccessList, setUserAccessList] = useState([]);
   const searchTimeOutRef = useRef(null);
   const [auth] = useAuth();
+  const [userCount, setUserCount] = useState(0);
   const fetchData = async (params) => {
     try {
       setLoading(true);
@@ -27,6 +28,7 @@ const ShareDrawer = ({ open, setIsOpen, docData }) => {
         : "/api/v1/user/getAllUsers";
       const { data } = await axios.get(endpoint, { params });
       setUsers(data?.data);
+      setUserCount(data?.userCount);
     } catch (error) {
       console.log(error.message);
     }
@@ -121,6 +123,11 @@ const ShareDrawer = ({ open, setIsOpen, docData }) => {
                 onChange={handleSearch}
               />
             </div>
+             {userCount > 0 && (
+              <div className="text-center text-xs text-gray-500">
+                Total Users : {userCount}
+              </div>
+            )}
             <div className="grid grid-cols-1 px-5 py-0">
               {!loading &&
                 users?.length > 0 &&
