@@ -9,6 +9,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useState } from "react";
 import { useAuth } from "../context/authcontext";
+import InHurry from "../components/InHurry";
 const Login = () => {
   //Cockroach Db with corp account used for postgres  3ZRMh8szU5Jf__DSHJBmQA
   const [auth, setAuth] = useAuth();
@@ -128,6 +129,7 @@ const Login = () => {
                   </p>
                 </Link>
               </div>
+              <InHurry />
             </Form>
           </div>
         </div>
